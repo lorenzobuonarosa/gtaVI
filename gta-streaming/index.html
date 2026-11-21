@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le ore in streaming di GTA VI – Radar QN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
+<link rel="stylesheet" href="../assets/radar.css">
+<style>.r-line{font-size:14px;line-height:1.45;color:var(--ink);margin:18px 0 0}.r-line b{font-weight:700}</style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="../assets/radar.js"></script>
+<script src="../assets/hbar.js"></script>
+</head>
+<body>
+<main class="radar">
+  <header>
+    <h1 class="r-title" id="title">In due giorni GTA VI ha superato la prima settimana di ogni altro lancio</h1>
+    <p class="r-sub">Ore guardate in streaming nella settimana di uscita, milioni. Twitch, YouTube, Kick e altre otto piattaforme</p>
+  </header>
+  <figure class="r-chart" id="chart"></figure>
+  <p class="r-line" id="sum"></p>
+  <p class="r-note">Valorant: beta chiusa del 2020.</p>
+  <footer class="r-foot">
+    <span>Fonte: Streams Charts</span>
+    <span>Elaborazione Radar – QN</span>
+  </footer>
+</main>
+<script>
+(function () {
+  var R = Radar, fmt = R.fmt;
+  var TRIO = ["Elden Ring", "Hogwarts Legacy", "Cyberpunk 2077"];
+  R.loadCSV("../data/streaming.csv").then(function (data) {
+    var rows = data.map(function (r) {
+      var v = R.num(r.ore_milioni), gta = /^GTA VI$/i.test(r.gioco.trim()), per = r.periodo.trim();
+      return {
+        name: r.gioco, anno: r.anno, value: v, hi: gta, periodo: per,
+        extra: gta && per.toLowerCase() !== "prima settimana" ? "(" + per + ")" : null,
+        tip: R.tipHTML({ title: r.gioco + " (" + r.anno + ")", value: fmt(v, 1), unit: "milioni di ore",
+          rows: [["Periodo", per]], note: r.nota || null })
+      };
+    }).sort(function (a, b) { return b.value - a.value; });
+    var g = rows.find(function (d) { return d.hi; });
+    var others = rows.filter(function (d) { return !d.hi; });
+    var week = g.periodo.toLowerCase() === "prima settimana";
+    // titolo: con il dato di due giorni quello concordato; con la settimana intera uno provvisorio calcolato
+    if (week) {
+      var second = others[0];
+      d3.select("#title").text(g.value > second.value
+        ? "Nella prima settimana GTA VI è stato guardato in streaming " + fmt(g.value / second.value, 1) + " volte più di " + second.name
+        : "GTA VI nella prima settimana in streaming: " + fmt(g.value, 1) + " milioni di ore");
+    } else if (!(g.value > d3.max(others, function (d) { return d.value; }))) {
+      d3.select("#title").text("GTA VI in streaming: " + fmt(g.value, 1) + " milioni di ore nei " + g.periodo);
+    }
+    var trio = TRIO.map(function (n) { return rows.find(function (d) { return d.name === n; }); }).filter(Boolean);
+    var tot = d3.sum(trio, function (d) { return d.value; });
+    d3.select("#sum").html(trio.map(function (d) { return d.name; }).join(", ").replace(/, ([^,]*)$/, " e $1") +
+      " insieme, in una settimana ciascuno: <b>" + fmt(tot, 1) + " milioni di ore</b>");
+    R.hbar(document.getElementById("chart"), rows, {
+      labW: 190, barH: 18,
+      fmt: function (v, i) { return fmt(v, 1) + (i === 0 ? " mln" : ""); },
+      title: "Ore guardate in streaming nella settimana di uscita",
+      aria: "Grafico a barre: GTA VI ha totalizzato " + fmt(g.value, 1) + " milioni di ore guardate in streaming (" + g.periodo +
+        "). Seguono " + others.slice(0, 3).map(function (d) { return d.name + " con " + fmt(d.value, 1); }).join(", ") + " milioni nella prima settimana."
+    });
+  }).catch(function (e) { R.fail("#chart", e); });
+})();
+</script>
+</body>
+</html>

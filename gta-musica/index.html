@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La musica di GTA VI – Radar QN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
+<link rel="stylesheet" href="../assets/radar.css">
+<style>.r-line{font-size:14px;line-height:1.45;color:var(--ink);margin:18px 0 0}.r-line b{font-weight:700}</style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="../assets/radar.js"></script>
+<script src="../assets/hbar.js"></script>
+</head>
+<body>
+<main class="radar">
+  <header>
+    <h1 class="r-title" id="title">&nbsp;</h1>
+    <p class="r-sub" id="sub">Ascolti totali su Spotify dei brani di Grand Theft Auto VI: The Album, milioni.</p>
+  </header>
+  <figure class="r-chart" id="chart"></figure>
+  <p class="r-line">Il brano più ascoltato di GTA V, <i>r-Cali</i> di A$AP Rocky: oltre 171 milioni di ascolti in tredici anni</p>
+  <p class="r-note">Kworb è un archivio indipendente delle classifiche Spotify. Sono inclusi solo i brani registrati sotto l'artista Grand Theft Auto VI.</p>
+  <footer class="r-foot">
+    <span>Fonte: Kworb, su dati Spotify</span>
+    <span>Elaborazione Radar – QN</span>
+  </footer>
+</main>
+<script>
+(function () {
+  var R = Radar, fmt = R.fmt;
+  var parseD = d3.timeParse("%d/%m/%Y"), fmtD = R.timeLocale.format("%-d %B %Y");
+  R.loadCSV("../data/musica.csv").then(function (data) {
+    var rows = data.map(function (r) {
+      var v = R.num(r.ascolti), day = R.num(r.giornalieri), dt = parseD(r.aggiornamento.trim());
+      return { name: r.brano, sub: r.interprete || null, value: v / 1e6, raw: v, day: day, date: dt };
+    }).sort(function (a, b) { return b.value - a.value; });
+    rows.forEach(function (d, i) {
+      d.hi = i === 0;
+      d.tip = R.tipHTML({ title: d.name, value: fmt(d.value, 1), unit: "milioni di ascolti",
+        rows: [["Interprete", d.sub || "n.d."], ["Totale", fmt(d.raw, 0)], ["Ultimo giorno", d.day == null ? "n.d." : fmt(d.day, 0)], ["Dati al", d.date ? fmtD(d.date) : "n.d."]] });
+    });
+    var last = d3.max(rows, function (d) { return d.date; });
+    var top = rows[0];
+    d3.select("#sub").text("Ascolti totali su Spotify dei brani di Grand Theft Auto VI: The Album, milioni. Dati al " + fmtD(last));
+    d3.select("#title").text(/^suzuki$/i.test(top.name.trim())
+      ? "Il brano più ascoltato di GTA VI è un corrido messicano"
+      : "Il brano più ascoltato di GTA VI è " + top.name + (top.sub ? " di " + top.sub : ""));
+    R.hbar(document.getElementById("chart"), rows, {
+      labW: 250, barH: 18,
+      fmt: function (v, i) { return fmt(v, 1) + (i === 0 ? " mln" : ""); },
+      title: "Ascolti su Spotify dei brani di Grand Theft Auto VI: The Album",
+      aria: "Grafico a barre: il brano più ascoltato dell'album di GTA VI è " + top.name + (top.sub ? " di " + top.sub : "") +
+        " con " + fmt(top.value, 1) + " milioni di ascolti su Spotify, seguito da " +
+        rows.slice(1, 3).map(function (d) { return d.name + " con " + fmt(d.value, 1); }).join(" e ") + " milioni. Dati al " + fmtD(last) + "."
+    });
+  }).catch(function (e) { R.fail("#chart", e); });
+})();
+</script>
+</body>
+</html>

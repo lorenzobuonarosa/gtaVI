@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quanto si gioca a GTA VI – Radar QN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
+<link rel="stylesheet" href="../assets/radar.css">
+<style>.r-line{font-size:14px;line-height:1.45;color:var(--ink);margin:18px 0 0}.r-line b{font-weight:700}</style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="../assets/radar.js"></script>
+<script src="../assets/hbar.js"></script>
+</head>
+<body>
+<main class="radar">
+  <header>
+    <h1 class="r-title">Il giorno del lancio, chi ha giocato a GTA VI ci ha passato più di una giornata di lavoro</h1>
+    <p class="r-sub">Minuti medi giocati al giorno per giocatore. GTA VI: giorno di lancio, 19 novembre 2026; altri giochi: rilevazioni del 2023</p>
+  </header>
+  <figure class="r-chart" id="chart"></figure>
+  <p class="r-note" id="key"></p>
+  <p class="r-note">Le rilevazioni non sono omogenee: per GTA VI il solo giorno di lancio, per gli altri giochi le settimane successive all'uscita. PS5: giocatori attivi negli Stati Uniti; Xbox: giocatori attivi nel mondo.</p>
+  <footer class="r-foot">
+    <span>Fonte: Circana, Player Engagement Tracker</span>
+    <span>Elaborazione Radar – QN</span>
+  </footer>
+</main>
+<script>
+(function () {
+  var R = Radar, fmt = R.fmt;
+  function hm(m) { var h = Math.floor(m / 60), r = Math.round(m - h * 60); return h + " h" + (r ? " " + r + " min" : ""); }
+  R.loadCSV("../data/minuti.csv").then(function (data) {
+    var rows = data.map(function (r) {
+      var v = R.num(r.minuti), ap = /^s[iì]$/i.test(r.approssimato.trim());
+      return {
+        name: r.gioco, sub: r.contesto, value: v, approx: ap, hi: /^GTA VI$/i.test(r.gioco.trim()),
+        tip: R.tipHTML({ title: r.gioco, value: (ap ? "≈ " : "") + fmt(v, 0), unit: "min al giorno",
+          rows: [["Contesto", r.contesto], ["In ore", hm(v)]],
+          note: ap ? "Valore arrotondato nella fonte" : null })
+      };
+    });
+    var anyApprox = rows.some(function (d) { return d.approx; });
+    d3.select("#key").text(anyApprox ? "≈ valore arrotondato nella fonte." : "").style("display", anyApprox ? null : "none");
+    var gta = rows.filter(function (d) { return d.hi; });
+    R.hbar(document.getElementById("chart"), rows, {
+      labW: 270, max: d3.max(rows, function (d) { return d.value; }),
+      fmt: function (v, i) { return (rows[i].approx ? "≈ " : "") + fmt(v, 0) + " min"; },
+      ref: { value: 480, label: "una giornata di lavoro (8 ore)" },
+      title: "Minuti medi giocati al giorno per giocatore",
+      aria: "Grafico a barre: il giorno del lancio i giocatori di GTA VI hanno giocato in media " +
+        gta.map(function (d) { return fmt(d.value, 0) + " minuti (" + d.sub + ")"; }).join(" e ") +
+        ", più delle 8 ore di una giornata di lavoro. " +
+        rows.filter(function (d) { return !d.hi; }).map(function (d) { return d.name + ", " + d.sub + ": circa " + fmt(d.value, 0) + " minuti"; }).join("; ") + "."
+    });
+  }).catch(function (e) { R.fail("#chart", e); });
+})();
+</script>
+</body>
+</html>

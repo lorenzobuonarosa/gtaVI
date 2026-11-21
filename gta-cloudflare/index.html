@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lo sblocco di GTA VI nel mondo – Radar QN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
+<link rel="stylesheet" href="../assets/radar.css">
+<style>.r-line{font-size:14px;line-height:1.45;color:var(--ink);margin:18px 0 0}.r-line b{font-weight:700}</style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="../assets/radar.js"></script>
+</head>
+<body>
+<main class="radar">
+  <header>
+    <h1 class="r-title">Lo sblocco di GTA VI ha fatto il giro del mondo in 19 ore</h1>
+    <p class="r-sub">Richieste ai servizi online di Rockstar per fuso orario, 17-19 novembre 2026 (UTC). Ogni riga è scalata sul proprio picco; a destra i picchi a confronto, in multipli del traffico normale</p>
+  </header>
+  <figure class="r-chart" id="chart"></figure>
+  <p class="r-note" id="key" style="display:none"></p>
+  <p class="r-note">La linea tratteggiata indica il primo sblocco, a mezzanotte in Nuova Zelanda (11:00 UTC del 18 novembre). Valori ricavati dal grafico pubblicato da Cloudflare Radar.</p>
+  <footer class="r-foot">
+    <span>Fonte: Cloudflare Radar, richieste DNS al resolver 1.1.1.1</span>
+    <span>Elaborazione Radar – QN</span>
+  </footer>
+</main>
+<style>
+  .rl-fuso { font-size: 12px; font-weight: 700; fill: var(--ink); }
+  .rl-paesi { font-size: 10.5px; fill: var(--ink-2); }
+  .rl-halo { fill: none; stroke: var(--bg); stroke-width: 3.5; stroke-linejoin: round; }
+  .rl-line { fill: none; stroke-width: 1.5; stroke-linejoin: round; }
+  .rl-interp { fill: none; stroke-width: 1.5; stroke-dasharray: 2 3; }
+  .rl-peak { font-size: 11px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+  .rl-vgrid { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
+  .rl-unlock { stroke: var(--grey); stroke-width: 1; stroke-dasharray: 4 3; }
+  .rl-panel-head { font-size: 11px; fill: var(--ink-2); }
+</style>
+<script>
+(function () {
+  var R = Radar, fmt = R.fmt;
+  var parseT = d3.utcParse("%d/%m/%Y %H:%M");
+  var fT = R.timeLocale.utcFormat("%H:%M"), fD = R.timeLocale.utcFormat("%a %-d");
+  var T0 = Date.UTC(2026, 10, 17, 18), T1 = Date.UTC(2026, 10, 19, 11), UNLOCK = Date.UTC(2026, 10, 18, 11);
+  var HOUR = 36e5;
+
+  Promise.all([R.loadCSV("../data/cloudflare-picchi.csv"), R.loadCSV("../data/cloudflare-orario.csv")]).then(function (res) {
+    var rows = res[0].map(function (r) {
+      var off = +r.fuso.replace(/^UTC/, "").replace("−", "-") || 0;
+      return { ord: +r.ordine, fuso: r.fuso, paesi: r.paesi, picco: R.num(r.picco), tPeak: parseT(r.ora_picco_utc).getTime(),
+        tUnlock: parseT(r.sblocco_utc).getTime(), off: off, pts: [] };
+    }).sort(function (a, b) { return a.ord - b.ord; });
+    var byFuso = {}; rows.forEach(function (d) { byFuso[d.fuso] = d; });
+    var hours = d3.range(T0, T1 + 1, HOUR);
+    rows.forEach(function (d) { d.raw = {}; });
+    res[1].forEach(function (r) {
+      var d = byFuso[r.fuso.trim()]; if (!d) return;
+      d.raw[parseT(r.ora_utc.trim()).getTime()] = R.num(r.valore_relativo);
+    });
+    // serie oraria completa: i vuoti vengono interpolati linearmente e segnati
+    var anyInterp = false;
+    rows.forEach(function (d) {
+      var known = hours.filter(function (t) { return d.raw[t] != null; });
+      d.pts = hours.map(function (t) {
+        var v = d.raw[t];
+        if (v != null) return { t: t, v: v, interp: false };
+        var a = known.filter(function (k) { return k < t; }).pop(), b = known.find(function (k) { return k > t; });
+        var iv = a == null ? (b == null ? 0 : d.raw[b]) : b == null ? d.raw[a] : d.raw[a] + (d.raw[b] - d.raw[a]) * (t - a) / (b - a);
+        anyInterp = true;
+        return { t: t, v: iv, interp: true };
+      });
+    });
+    if (anyInterp) d3.select("#key").style("display", null).text("Linea punteggiata: ore in cui la curva originale non era leggibile, valori interpolati.");
+
+    var host = document.getElementById("chart");
+    var tip = R.tooltip(host);
+    var clear = function () {};
+    R.dismissOutside(host, function () { tip.hide(); clear(); });
+    var color = function (i) { return d3.interpolatePlasma(0.88 - 0.78 * i / (rows.length - 1)); };
+    var top3 = rows.slice().sort(function (a, b) { return b.picco - a.picco; }).slice(0, 3);
+    var maxRow = top3[0];
+
+    R.responsive(host, function (W, phase) {
+      var small = W < 700;
+      var step = small ? 26 : 36, amp = step * 1.7;
+      var labW = small ? 52 : 168, panW = small ? 0 : 118, gapP = small ? 0 : 22;
+      var m = { top: amp + 6, bottom: 34 };
+      var x0 = labW + 8, x1 = W - panW - gapP - (small ? 26 : 30);   // spazio a destra per l'etichetta del picco
+      var x = d3.scaleUtc().domain([T0, T1]).range([x0, x1]);
+      var base = function (i) { return m.top + i * step; };
+      var H = base(rows.length - 1) + m.bottom;
+
+      d3.select(host).select("svg").remove();
+      var svg = d3.select(host).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img")
+        .attr("aria-label", "Ridgeline: le richieste ai servizi online di Rockstar salgono a ondate fuso dopo fuso, dalla Nuova Zelanda alle 11:00 UTC del 18 novembre al Messico alle 06:00 UTC del 19. Picchi: " +
+          rows.map(function (d) { return d.fuso + " " + fmt(d.picco, 1) + " volte il normale"; }).join(", ") + ".");
+      svg.append("title").text("Richieste ai servizi online di Rockstar per fuso orario");
+      var defs = svg.append("defs");
+      var clipId = "rl-clip";
+      var clipRect = defs.append("clipPath").attr("id", clipId).append("rect").attr("x", x0 - 2).attr("y", 0).attr("height", H);
+
+      // griglia verticale ogni 6 ore (12 su mobile)
+      var ticks = d3.utcHour.every(small ? 12 : 6).range(T0, T1 + 1);
+      var gx = svg.append("g");
+      gx.selectAll("line").data(ticks).join("line").attr("class", "rl-vgrid")
+        .attr("x1", function (t) { return Math.round(x(t)) + 0.5; }).attr("x2", function (t) { return Math.round(x(t)) + 0.5; })
+        .attr("y1", 0).attr("y2", base(rows.length - 1));
+      var tl = gx.selectAll("text").data(ticks).join("text").attr("class", "tick-label").attr("text-anchor", "middle")
+        .attr("x", function (t) { return x(t); }).attr("y", base(rows.length - 1) + 16);
+      tl.append("tspan").text(function (t) { return fT(t); });
+      tl.append("tspan").attr("x", function (t) { return x(t); }).attr("dy", 13).text(function (t) { return fD(t); });
+
+      // linea del primo sblocco
+      svg.append("line").attr("class", "rl-unlock").attr("x1", Math.round(x(UNLOCK)) + 0.5).attr("x2", Math.round(x(UNLOCK)) + 0.5)
+        .attr("y1", 0).attr("y2", base(rows.length - 1));
+
+      // righe: dall'alto in basso, ogni riga copre quella sopra
+      var yv = function (i, v) { return base(i) - v * amp; };
+      var plot = svg.append("g").attr("clip-path", "url(#" + clipId + ")");
+      var groups = plot.selectAll("g.row").data(rows).join("g").attr("class", "row mark");
+      groups.each(function (d, i) {
+        var g = d3.select(this), c = color(i);
+        var area = d3.area().curve(d3.curveMonotoneX).x(function (p) { return x(p.t); }).y0(base(i)).y1(function (p) { return yv(i, p.v); });
+        var line = d3.line().curve(d3.curveMonotoneX).x(function (p) { return x(p.t); }).y(function (p) { return yv(i, p.v); });
+        g.append("path").attr("d", area(d.pts)).style("fill", c).style("fill-opacity", 0.35);
+        g.append("path").attr("class", "rl-halo").attr("d", line(d.pts));
+        if (d.pts.some(function (p) { return p.interp; })) {
+          g.append("path").attr("class", "rl-interp").attr("d", line(d.pts)).style("stroke", c);
+          // linea piena solo dove il dato è letto (segmenti tra due ore lette)
+          line.defined(function (p, k, a) { return !p.interp; });
+        }
+        g.append("path").attr("class", "rl-line").attr("d", line(d.pts)).style("stroke", c);
+      });
+      // pallini ed etichette dei picchi sopra tutte le righe
+      var peaks = svg.append("g").selectAll("g").data(rows).join("g").attr("class", "mark");
+      peaks.append("circle").attr("cx", function (d) { return x(d.tPeak); }).attr("cy", function (d, i) { return yv(i, 1); })
+        .attr("r", function (d) { return top3.indexOf(d) >= 0 ? 4.5 : 3; })
+        .style("fill", function (d, i) { return color(i); }).style("stroke", "var(--bg)").style("stroke-width", 1.5);
+      peaks.append("text").attr("class", "rl-peak").attr("x", function (d) { return x(d.tPeak) + 7; }).attr("y", function (d, i) { return yv(i, 1); })
+        .attr("dy", "0.35em").text(function (d) { return fmt(d.picco, 1) + "×"; });
+
+      // etichette a sinistra
+      var labs = svg.append("g").selectAll("g").data(rows).join("g").attr("class", "mark");
+      labs.append("text").attr("class", "rl-fuso").attr("x", 0).attr("y", function (d, i) { return base(i) - (small ? 3 : 15); }).text(function (d) { return d.fuso.replace("-", "−"); });
+      if (!small) {
+        labs.append("text").attr("class", "rl-paesi").attr("x", 0).attr("y", function (d, i) { return base(i) - 3; })
+          .text(function (d) { return d.paesi; })
+          .each(function () {
+            // una riga sola: se non ci sta, accorcio con i puntini
+            var t = d3.select(this), s = t.text();
+            while (this.getComputedTextLength() > labW && s.length > 4) { s = s.slice(0, -1); t.text(s.replace(/[ ,]+$/, "") + "…"); }
+          });
+      }
+
+      // pannello dei picchi a destra, scala comune 0-12×
+      var bars = d3.select(null), vals = d3.select(null);
+      if (!small) {
+        var px0 = W - panW, bxs = d3.scaleLinear().domain([0, 12]).range([0, panW - 34]);
+        var pan = svg.append("g");
+        pan.append("text").attr("class", "rl-panel-head").attr("x", px0).attr("y", base(0) - amp + 4).text("Picco, × il normale");
+        pan.append("line").attr("class", "baseline").attr("x1", px0 + 0.5).attr("x2", px0 + 0.5).attr("y1", base(0) - 14).attr("y2", base(rows.length - 1));
+        bars = pan.selectAll("path").data(rows).join("path").attr("class", "mark").style("fill", function (d, i) { return color(i); });
+        R.enter(bars, phase,
+          function (s) { s.attr("d", function (d, i) { return R.barPathH(px0 + 1, base(i) - 11, 0, 10, 2); }); },
+          function (s) {
+            if (phase === "play") s.attrTween("d", function (d) { var i = rows.indexOf(d); return function (t) { return R.barPathH(px0 + 1, base(i) - 11, bxs(d.picco) * t, 10, 2); }; });
+            else s.attr("d", function (d, i) { return R.barPathH(px0 + 1, base(i) - 11, bxs(d.picco), 10, 2); });
+          }, R.DUR * 0.3);
+        vals = pan.selectAll("text.val-label").data(rows).join("text").attr("class", "val-label mark")
+          .attr("x", function (d) { return px0 + 1 + bxs(d.picco) + 5; }).attr("y", function (d, i) { return base(i) - 6; }).attr("dy", "0.35em")
+          .style("font-size", "11px");
+        vals.each(function (d) { R.countUp(d3.select(this), d.picco, function (v) { return fmt(v, 1) + "×"; }, phase, R.DUR * 0.3); });
+      }
+
+      // ingresso: le curve si scoprono da sinistra a destra
+      R.enter(clipRect, phase, function (s) { s.attr("width", 0); }, function (s) { s.attr("width", x1 - x0 + 4); });
+      R.enter(peaks, phase, function (s) { s.style("opacity", 0); }, function (s) { s.style("opacity", 1); }, R.DUR * 0.8);
+
+      // interazione: riga sotto il puntatore e ora più vicina
+      var cross = svg.append("line").attr("class", "crosshair").style("opacity", 0).attr("y1", 0).attr("y2", base(rows.length - 1));
+      var dot = svg.append("circle").attr("r", 3.5).style("fill", "var(--ink)").style("opacity", 0).style("pointer-events", "none");
+      clear = function () { groups.classed("is-dimmed", false); peaks.classed("is-dimmed", false); labs.classed("is-dimmed", false); bars.classed("is-dimmed", false); vals.classed("is-dimmed", false); cross.style("opacity", 0); dot.style("opacity", 0); };
+      svg.append("rect").attr("class", "hit").attr("x", 0).attr("y", 0).attr("width", W).attr("height", base(rows.length - 1) + 4)
+        .on("pointermove pointerdown", function (ev) {
+          var p = d3.pointer(ev, this);
+          var i = Math.max(0, Math.min(rows.length - 1, Math.round((p[1] - m.top + step * 0.6) / step)));
+          var d = rows[i];
+          var t = Math.max(T0, Math.min(T1, Math.round(x.invert(Math.max(x0, Math.min(x1, p[0]))).getTime() / HOUR) * HOUR));
+          var pt = d.pts.find(function (q) { return q.t === t; });
+          groups.classed("is-dimmed", function (q) { return q !== d; });
+          peaks.classed("is-dimmed", function (q) { return q !== d; });
+          labs.classed("is-dimmed", function (q) { return q !== d; });
+          bars.classed("is-dimmed", function (q) { return q !== d; });
+          vals.classed("is-dimmed", function (q) { return q !== d; });
+          cross.attr("x1", Math.round(x(t)) + 0.5).attr("x2", Math.round(x(t)) + 0.5).style("opacity", 0.5);
+          dot.attr("cx", x(t)).attr("cy", yv(i, pt.v)).style("opacity", 1);
+          var loc = new Date(t + d.off * HOUR);
+          tip.show(R.tipHTML({
+            title: d.fuso.replace("-", "−") + " · " + d.paesi,
+            value: fmt(pt.v * 100, 0) + "%", unit: "del picco della riga",
+            rows: [["Ora UTC", fT(t) + " " + fD(t)], ["Ora locale", fT(loc) + " " + fD(loc)], ["Picco", fmt(d.picco, 1) + "× alle " + fT(d.tPeak) + " UTC"]],
+            note: pt.interp ? "Valore interpolato: in quest'ora la curva originale non era leggibile" : null
+          }), x(t), yv(i, pt.v));
+        })
+        .on("pointerleave", function (ev) { if (ev.pointerType === "mouse") { tip.hide(); clear(); } });
+    });
+  }).catch(function (e) { R.fail("#chart", e); });
+})();
+</script>
+</body>
+</html>
