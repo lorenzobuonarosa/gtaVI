@@ -31,7 +31,6 @@
   .rl-paesi { font-size: 10.5px; fill: var(--ink-2); }
   .rl-halo { fill: none; stroke: var(--bg); stroke-width: 3.5; stroke-linejoin: round; }
   .rl-line { fill: none; stroke-width: 1.5; stroke-linejoin: round; }
-  .rl-interp { fill: none; stroke-width: 1.5; stroke-dasharray: 2 3; }
   .rl-peak { font-size: 11px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
   .rl-vgrid { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
   .rl-unlock { stroke: var(--grey); stroke-width: 1; stroke-dasharray: 4 3; }
@@ -71,17 +70,32 @@
         return { t: t, v: iv, interp: true };
       });
     });
-    if (anyInterp) d3.select("#key").style("display", null).text("Linea punteggiata: ore in cui la curva originale non era leggibile, valori interpolati.");
 
     var host = document.getElementById("chart");
     var tip = R.tooltip(host);
     var clear = function () {};
     R.dismissOutside(host, function () { tip.hide(); clear(); });
-    var color = function (i) { return d3.interpolatePlasma(0.88 - 0.78 * i / (rows.length - 1)); };
+    // scala Radar: dal rosso (primi sblocchi, Pacifico e Asia) al grigio (Europa e Africa) al blu (Americhe).
+    // I colori si leggono dalle variabili di radar.css, così nel tema scuro seguono le scale rovesciate.
+    // nel tema scuro le scale sono rovesciate: uso i passi chiari, che restano leggibili sul fondo nero
+    var STOPS = { light: ["--red-2", "--red-3", "--red-4", "--grey-3", "--blue-3", "--blue-2", "--blue-1"],
+                  dark: ["--red-1", "--red-2", "--red-3", "--grey-3", "--blue-3", "--blue-2", "--blue-1"] };
+    var color;
+    function setColors() {
+      var cs = getComputedStyle(document.documentElement);
+      var scale = d3.piecewise(d3.interpolateLab, STOPS[document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"].map(function (v) { return cs.getPropertyValue(v).trim(); }));
+      color = function (i) { return scale(i / (rows.length - 1)); };
+    }
+    setColors();
     var top3 = rows.slice().sort(function (a, b) { return b.picco - a.picco; }).slice(0, 3);
     var maxRow = top3[0];
 
-    R.responsive(host, function (W, phase) {
+    var lastW = 0, draw;
+    // al cambio di tema (messaggio del CMS) ridisegno con i colori del nuovo tema
+    new MutationObserver(function () { setColors(); if (lastW) draw(lastW, "static"); })
+      .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-bg"] });
+    R.responsive(host, draw = function (W, phase) {
+      lastW = W;
       var small = W < 700;
       var step = small ? 26 : 36, amp = step * 1.7;
       var labW = small ? 52 : 168, panW = small ? 0 : 118, gapP = small ? 0 : 22;
@@ -125,11 +139,6 @@
         var line = d3.line().curve(d3.curveMonotoneX).x(function (p) { return x(p.t); }).y(function (p) { return yv(i, p.v); });
         g.append("path").attr("d", area(d.pts)).style("fill", c).style("fill-opacity", 0.35);
         g.append("path").attr("class", "rl-halo").attr("d", line(d.pts));
-        if (d.pts.some(function (p) { return p.interp; })) {
-          g.append("path").attr("class", "rl-interp").attr("d", line(d.pts)).style("stroke", c);
-          // linea piena solo dove il dato è letto (segmenti tra due ore lette)
-          line.defined(function (p, k, a) { return !p.interp; });
-        }
         g.append("path").attr("class", "rl-line").attr("d", line(d.pts)).style("stroke", c);
       });
       // pallini ed etichette dei picchi sopra tutte le righe
