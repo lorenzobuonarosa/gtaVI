@@ -19,4 +19,4 @@ Cinque dataviz per il pezzo sui primi giorni di Grand Theft Auto VI. Pagine stat
 - Cloudflare: ore mancanti in `cloudflare-orario.csv` interpolate linearmente e disegnate con linea punteggiata (chiave sotto il grafico); valore del tooltip = percentuale del picco della riga.
 
 ## Snippet CMS
-Vedi `index.html` (anteprime desktop/mobile e pulsante "Copia"). Sostituire `ACCOUNT` e `REPO`.
+Vedi `index.html` (https://lorenzobuonarosa.github.io/gtaVI/): anteprime desktop/mobile e pulsante "Copia".
