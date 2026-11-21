@@ -174,6 +174,7 @@
 
   // ---------- Altezza iframe ----------
   function postHeight() {
+    if (!document.body) return;   // chiamata prima che il body esista (fonts.ready già risolto)
     var el = document.querySelector(".radar") || document.body;
     var cs = getComputedStyle(document.body);
     var h = Math.ceil(el.getBoundingClientRect().height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom));
