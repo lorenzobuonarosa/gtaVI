@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le uscite di Grand Theft Auto – Radar QN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
+<link rel="stylesheet" href="../assets/radar.css">
+<style>.r-line{font-size:14px;line-height:1.45;color:var(--ink);margin:18px 0 0}.r-line b{font-weight:700}</style>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="../assets/radar.js"></script>
+</head>
+<style>
+  .tl-scroll { position: relative; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
+  .tl { position: relative; }
+  .tl svg { position: absolute; left: 0; top: 0; overflow: visible; }
+  .tl-hint { font-size: 12px; color: var(--ink-2); margin: 8px 0 0; display: none; }
+  .tl-card { position: absolute; display: block; padding: 0; margin: 0; border: 0; background: none; text-align: left; cursor: zoom-in; font: inherit; color: inherit; }
+  .tl-card img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 2px; background: var(--rule); }
+  .tl-card:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  .tl-year { display: block; font-size: 12px; font-weight: 700; color: var(--ink); margin: 7px 0 1px; font-variant-numeric: tabular-nums; }
+  .tl-name { display: block; font-size: 13px; font-weight: 700; line-height: 1.25; }
+  .tl-meta { display: block; font-size: 11.5px; line-height: 1.35; color: var(--ink-2); margin-top: 2px; }
+  .tl-card--big .tl-year { font-size: 13px; }
+  .tl-card--big .tl-name { font-size: 15px; }
+  .tl-card--big .tl-meta { font-size: 12px; }
+  .tl-leader { fill: none; stroke: var(--grey-light); stroke-width: 1; }
+  .tl-axis { stroke: var(--ink); stroke-width: 1.5; }
+  .tl-br { fill: none; stroke-width: 1.25; }
+  .tl-br-lab { font-size: 12px; font-weight: 600; }
+  .tl-eras rect { opacity: 1; }
+  :root[data-theme="dark"] .tl-eras rect { opacity: 0.5; }
+  .tl-era-lab { font-size: 11px; font-weight: 600; fill: var(--ink); }
+  .tl-era-sub { font-size: 11px; fill: var(--ink-2); }
+  .tl-spin { fill: var(--bg); stroke: var(--grey); stroke-width: 1.5; cursor: pointer; }
+  .tl-main { fill: var(--ink); }
+  .tl-box { position: fixed; inset: 0; z-index: 20; background: rgba(10,10,10,.88); display: none; align-items: center; justify-content: center; flex-direction: column; padding: 16px; cursor: zoom-out; }
+  .tl-box.is-on { display: flex; }
+  .tl-box img { max-width: 100%; max-height: calc(100% - 64px); width: 100%; object-fit: contain; image-rendering: auto; }
+  .tl-box p { color: #f2f2f2; font-size: 13px; line-height: 1.4; margin: 10px 0 0; max-width: 760px; text-align: center; }
+  .tl-box button { position: absolute; top: 8px; right: 10px; background: none; border: 0; color: #fff; font-size: 28px; line-height: 1; cursor: pointer; padding: 4px 8px; }
+</style>
+<body>
+<main class="radar">
+  <header>
+    <h1 class="r-title">Tredici anni tra un GTA e l'altro</h1>
+    <p class="r-sub">Le uscite della serie Grand Theft Auto dal 1997, capitoli principali e spin-off</p>
+  </header>
+  <figure class="r-chart" id="chart" style="margin-top:20px">
+    <div class="tl-scroll" id="scroll"><div class="tl" id="tl"></div></div>
+    <p class="tl-hint" id="hint">Scorri la linea del tempo →</p>
+  </figure>
+  <div class="r-key" id="key"></div>
+  <footer class="r-foot">
+    <span>Fonte: Rockstar Games. Immagini: Rockstar Games</span>
+    <span>Elaborazione Radar – QN</span>
+  </footer>
+</main>
+<div class="tl-box" id="box" role="dialog" aria-modal="true" aria-label="Immagine ingrandita">
+  <button type="button" aria-label="Chiudi">×</button>
+  <img alt="">
+  <p></p>
+</div>
+<script>
+(function () {
+  var R = Radar;
+  var box = d3.select("#box");
+  function openBox(d) {
+    box.select("img").attr("src", "img/" + d.img).attr("alt", "Immagine di " + d.titolo);
+    box.select("p").text(d.titolo + " (" + d.anno + ") · " + d.amb + " · " + d.piatt + ". Immagine: Rockstar Games");
+    box.classed("is-on", true); box.select("button").node().focus();
+  }
+  function closeBox() { box.classed("is-on", false); box.select("img").attr("src", null); }
+  box.on("click", closeBox);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeBox(); });
+
+  R.loadCSV("../data/timeline.csv").then(function (data) {
+    var all = data.map(function (r, i) {
+      return { i: i, anno: +r.anno, titolo: r.titolo, main: /^s[iì]$/i.test(r.principale.trim()), era: r.era.trim(),
+        amb: r.ambientazione, piatt: r.piattaforme_lancio, img: r.immagine.trim() };
+    });
+    var mains = all.filter(function (d) { return d.main; });
+    var spins = all.filter(function (d) { return !d.main; });
+    var last = mains[mains.length - 1];
+    var y0 = d3.min(all, function (d) { return d.anno; }), y1 = d3.max(all, function (d) { return d.anno; });
+    // intervalli tra capitoli principali; in rosso quelli di almeno 5 anni
+    var gaps = d3.pairs(mains).map(function (p) { return { a: p[0], b: p[1], n: p[1].anno - p[0].anno }; });
+    gaps.forEach(function (g) { g.hi = g.n >= 5; });
+    // ere: dalla prima uscita dell'era alla prima della successiva
+    var eras = [];
+    all.forEach(function (d) { var e = eras.find(function (q) { return q.k === d.era; }); if (!e) eras.push(e = { k: d.era, from: d.anno, to: d.anno }); e.to = Math.max(e.to, d.anno); });
+    eras.forEach(function (e, i) { e.end = i < eras.length - 1 ? eras[i + 1].from : y1 + 1; e.label = i < eras.length - 1 ? e.from + "-" + (eras[i + 1].from - 1) : "dal " + e.from; });
+    var eraFill = [0.45, 0.75, 1];
+
+    d3.select("#key").html('<span><i class="sw" style="background:var(--ink);border-radius:50%"></i>Capitolo principale</span>' +
+      '<span><i class="sw" style="border:1.5px solid var(--grey);border-radius:50%;background:var(--bg)"></i>Spin-off ed espansioni (passa sopra per il titolo)</span>' +
+      '<span><i class="sw" style="background:var(--red);height:2px;border-radius:0"></i>Attesa di almeno 5 anni</span>');
+
+    var host = document.getElementById("chart");
+    var tl = d3.select("#tl");
+    var tip = R.tooltip(document.getElementById("tl"));
+    R.dismissOutside(host, function () { tip.hide(); });
+
+    R.responsive(host, function (W, phase) {
+      var scroll = W < 700;
+      var TW = scroll ? 900 : W;
+      d3.select("#hint").style("display", scroll ? "block" : "none");
+      tl.style("width", TW + "px").selectAll("*:not(.r-tip)").remove();
+      var gap = 10;
+      var cw = Math.floor((TW - 3 * gap) / 4.5), bw = Math.round(cw * 1.5);
+      var pad = 6;
+      var x = d3.scaleLinear().domain([y0, y1]).range([pad + 4, TW - pad - 4]);
+
+      // card: in alto e in basso alternate; l'ultima (la più grande) in basso
+      var tiers = [[], []];
+      mains.forEach(function (d, k) { d.big = d === last; d.tier = d.big ? 1 : k % 2; d.w = d.big ? bw : cw; tiers[d.tier].push(d); });
+      var cards = tl.selectAll("button.tl-card").data(mains).join("button").attr("type", "button")
+        .attr("class", function (d) { return "tl-card mark" + (d.big ? " tl-card--big" : ""); })
+        .style("width", function (d) { return d.w + "px"; })
+        .attr("aria-label", function (d) { return d.titolo + ", " + d.anno + ": apri l'immagine"; })
+        .html(function (d) {
+          return '<img loading="lazy" src="img/' + d.img + '" alt="">' + '<span class="tl-year">' + d.anno + '</span><span class="tl-name">' + d.titolo +
+            '</span><span class="tl-meta">' + d.amb + ' · ' + d.piatt + '</span>';
+        })
+        .on("click", function (ev, d) { openBox(d); });
+      cards.each(function (d) { d.h = this.offsetHeight; });
+      // posizioni orizzontali: centrate sull'anno, poi separate senza sovrapporsi
+      tiers.forEach(function (t) {
+        t.forEach(function (d) { d.left = Math.max(0, Math.min(TW - d.w, x(d.anno) - d.w / 2)); });
+        for (var k = 1; k < t.length; k++) t[k].left = Math.max(t[k].left, t[k - 1].left + t[k - 1].w + gap);
+        if (t.length) t[t.length - 1].left = Math.min(t[t.length - 1].left, TW - t[t.length - 1].w);
+        for (k = t.length - 2; k >= 0; k--) t[k].left = Math.min(t[k].left, t[k + 1].left - t[k].w - gap);
+      });
+      var hTop = d3.max(tiers[0], function (d) { return d.h; }) || 0;
+      var hBot = d3.max(tiers[1], function (d) { return d.h; }) || 0;
+      var elb = 14, brH = 30;
+      var axisY = hTop + elb + brH + 10;
+      var spinRows = d3.max(d3.rollups(spins, function (v) { return v.length; }, function (d) { return d.anno; }), function (r) { return r[1]; }) || 0;
+      var spinY = function (k) { return axisY + 11 + k * 10; };
+      var eraY = spinY(spinRows) + 2, eraH = 30;
+      var botY = eraY + eraH + elb + 6;
+      var H = botY + hBot + 4;
+      tl.style("height", H + "px");
+      cards.style("left", function (d) { return d.left + "px"; })
+        .style("top", function (d) { return (d.tier === 0 ? 0 : botY) + "px"; });
+
+      var svg = tl.insert("svg", "button").attr("width", TW).attr("height", H).attr("role", "img")
+        .attr("aria-label", "Linea del tempo delle uscite di Grand Theft Auto dal " + y0 + " al " + y1 + ". Intervalli tra i capitoli principali: " +
+          gaps.map(function (g) { return g.n + (g.n === 1 ? " anno" : " anni") + " tra " + g.a.titolo + " e " + g.b.titolo; }).join("; ") + ".");
+      svg.append("title").text("Le uscite della serie Grand Theft Auto");
+
+      // fasce delle ere
+      var eg = svg.append("g").attr("class", "tl-eras").selectAll("g").data(eras).join("g");
+      eg.append("rect").attr("x", function (e) { return x(e.from) - (e.from === y0 ? pad + 4 : 12); })
+        .attr("width", function (e, i) { return (i < eras.length - 1 ? x(e.end) - 12 : TW) - (x(e.from) - (e.from === y0 ? pad + 4 : 12)) - (i < eras.length - 1 ? 2 : 0); })
+        .attr("y", eraY).attr("height", eraH).attr("rx", 2)
+        .style("fill", "var(--blue-5)").style("fill-opacity", function (e, i) { return eraFill[i % 3]; });
+      eg.append("text").attr("class", "tl-era-lab").attr("x", function (e) { return x(e.from) - (e.from === y0 ? pad + 4 : 12) + 6; }).attr("y", eraY + 13).text(function (e) { return "Era " + e.k; });
+      eg.append("text").attr("class", "tl-era-sub").attr("x", function (e) { return x(e.from) - (e.from === y0 ? pad + 4 : 12) + 6; }).attr("y", eraY + 25).text(function (e) { return e.label; });
+
+      // linee di collegamento card → anno
+      var leaders = svg.append("g").selectAll("path").data(mains).join("path").attr("class", "tl-leader")
+        .attr("d", function (d) {
+          var px = x(d.anno), cx = Math.max(d.left + 10, Math.min(d.left + d.w - 10, px));
+          if (d.tier === 0) { var yb = d.h + 4; return "M" + cx + "," + yb + "V" + (hTop + elb) + "H" + px + "V" + axisY; }
+          var yt = botY - 4; return "M" + cx + "," + yt + "V" + (yt - elb + 4) + "H" + px + "V" + axisY;
+        });
+
+      // asse e tacche
+      svg.append("line").attr("class", "tl-axis").attr("x1", 0).attr("x2", TW).attr("y1", axisY).attr("y2", axisY);
+
+      // parentesi degli intervalli, sopra l'asse
+      var bg = svg.append("g").selectAll("g").data(gaps).join("g").attr("class", "mark");
+      var by = axisY - 9;
+      bg.append("path").attr("class", "tl-br").style("stroke", function (g) { return g.hi ? "var(--red)" : "var(--grey)"; })
+        .attr("d", function (g) { var a = x(g.a.anno) + 3, b = x(g.b.anno) - 3; return "M" + a + "," + (by + 5) + "V" + by + "H" + b + "V" + (by + 5); });
+      bg.append("text").attr("class", "tl-br-lab").attr("text-anchor", "middle").attr("y", by - 5)
+        .attr("x", function (g) { return (x(g.a.anno) + x(g.b.anno)) / 2; })
+        .style("fill", function (g) { return g.hi ? "var(--red)" : "var(--ink-2)"; })
+        .style("font-size", function (g) { return g.hi ? "13px" : null; }).style("font-weight", function (g) { return g.hi ? 700 : 600; })
+        .text(function (g) { return g.n + (g.n === 1 ? " anno" : " anni"); })
+        .each(function (g) {
+          // se l'etichetta non sta nella parentesi resta solo il numero
+          if (this.getComputedTextLength() > x(g.b.anno) - x(g.a.anno) - 2) d3.select(this).text(g.n);
+        });
+      R.enter(bg, phase, function (s) { s.style("opacity", 0); }, function (s) { s.style("opacity", 1); }, R.DUR * 0.4);
+
+      // punti: capitoli principali sull'asse, spin-off impilati sotto
+      svg.append("g").selectAll("circle").data(mains).join("circle").attr("class", "tl-main")
+        .attr("cx", function (d) { return x(d.anno); }).attr("cy", axisY).attr("r", function (d) { return d.big ? 5.5 : 4.5; });
+      var cnt = {};
+      spins.forEach(function (d) { cnt[d.anno] = (cnt[d.anno] || 0); d.k = cnt[d.anno]++; });
+      var sp = svg.append("g").selectAll("circle").data(spins).join("circle").attr("class", "tl-spin mark")
+        .attr("cx", function (d) { return x(d.anno); }).attr("cy", function (d) { return spinY(d.k); }).attr("r", 3.5);
+      svg.append("g").selectAll("circle").data(spins).join("circle").attr("class", "hit").attr("r", 9)
+        .attr("cx", function (d) { return x(d.anno); }).attr("cy", function (d) { return spinY(d.k); })
+        .on("pointerenter pointerdown", function (ev, d) {
+          sp.classed("is-dimmed", function (q) { return q !== d; });
+          tip.show(R.tipHTML({ title: d.titolo, rows: [["Anno", d.anno], ["Ambientazione", d.amb], ["Piattaforme", d.piatt]] }), x(d.anno), spinY(d.k));
+        })
+        .on("pointerleave", function (ev) { if (ev.pointerType === "mouse") { tip.hide(); sp.classed("is-dimmed", false); } });
+
+      R.enter(cards, phase, function (s) { s.style("opacity", 0); }, function (s) {
+        if (phase === "play") s.style("opacity", 0).transition().delay(function (d, i) { return i * 70; }).duration(R.DUR).style("opacity", 1);
+        else s.style("opacity", 1);
+      });
+      if (scroll && phase !== "static") document.getElementById("scroll").scrollLeft = 0;
+    });
+  }).catch(function (e) { R.fail("#chart", e); });
+})();
+</script>
+</body>
+</html>
