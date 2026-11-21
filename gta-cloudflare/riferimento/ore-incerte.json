@@ -1,0 +1,253 @@
+{
+ "UTC+13": {
+  "18/11 13:00": [
+   "incrocio con UTC+11"
+  ],
+  "18/11 16:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "18/11 17:00": [
+   "linea poco leggibile"
+  ],
+  "19/11 00:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 01:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 02:00": [
+   "linea poco leggibile"
+  ],
+  "19/11 03:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 04:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 05:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ]
+ },
+ "UTC+11": {
+  "18/11 15:00": [
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+9"
+  ],
+  "18/11 16:00": [
+   "incrocio con UTC+9"
+  ],
+  "18/11 17:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+9"
+  ],
+  "18/11 18:00": [
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+9"
+  ],
+  "18/11 21:00": [
+   "incrocio con UTC+9"
+  ],
+  "18/11 22:00": [
+   "incrocio con UTC+9"
+  ]
+ },
+ "UTC+9": {
+  "18/11 16:00": [
+   "incrocio con UTC+11"
+  ],
+  "18/11 17:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+11"
+  ],
+  "18/11 18:00": [
+   "salto nel tracciato",
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+11"
+  ],
+  "18/11 21:00": [
+   "linea poco leggibile",
+   "incrocio con UTC+11"
+  ],
+  "18/11 22:00": [
+   "linea poco leggibile",
+   "incrocio con UTC+11"
+  ],
+  "18/11 23:00": [
+   "incrocio con UTC+8"
+  ]
+ },
+ "UTC+8": {
+  "18/11 19:00": [
+   "incrocio con UTC+4"
+  ],
+  "18/11 21:00": [
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+4"
+  ],
+  "18/11 22:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "18/11 23:00": [
+   "incrocio con UTC+9"
+  ],
+  "19/11 00:00": [
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+4"
+  ]
+ },
+ "UTC+4": {
+  "18/11 19:00": [
+   "incrocio con UTC+8"
+  ],
+  "18/11 21:00": [
+   "incrocio con UTC+8"
+  ],
+  "18/11 22:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+3"
+  ],
+  "18/11 23:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 00:00": [
+   "incrocio con UTC+8"
+  ],
+  "19/11 01:00": [
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+3"
+  ]
+ },
+ "UTC+3": {
+  "18/11 09:00": [
+   "linea poco leggibile"
+  ],
+  "18/11 22:00": [
+   "linea poco leggibile",
+   "incrocio con UTC+4"
+  ],
+  "18/11 23:00": [
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 00:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 01:00": [
+   "coperta da etichetta o pallino",
+   "incrocio con UTC+4"
+  ],
+  "19/11 02:00": [
+   "incrocio con UTC+2"
+  ]
+ },
+ "UTC+2": {
+  "18/11 23:00": [
+   "linea poco leggibile",
+   "salto nel tracciato",
+   "incrocio con UTC+1"
+  ],
+  "19/11 00:00": [
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 01:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 02:00": [
+   "linea poco leggibile",
+   "incrocio con UTC+3"
+  ],
+  "19/11 03:00": [
+   "salto nel tracciato"
+  ],
+  "19/11 04:00": [
+   "incrocio con UTC+1"
+  ],
+  "19/11 05:00": [
+   "incrocio con UTC+1"
+  ]
+ },
+ "UTC+1": {
+  "19/11 00:00": [
+   "salto nel tracciato"
+  ],
+  "19/11 01:00": [
+   "salto nel tracciato",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 03:00": [
+   "salto nel tracciato"
+  ],
+  "19/11 04:00": [
+   "salto nel tracciato",
+   "incrocio con UTC+2"
+  ],
+  "19/11 05:00": [
+   "linea poco leggibile",
+   "incrocio con UTC+2"
+  ]
+ },
+ "UTC+0": {
+  "17/11 18:00": [
+   "linea poco leggibile"
+  ],
+  "19/11 06:00": [
+   "linea poco leggibile"
+  ],
+  "19/11 07:00": [
+   "linea poco leggibile"
+  ]
+ },
+ "UTC-3": {
+  "19/11 06:00": [
+   "linea poco leggibile"
+  ],
+  "19/11 07:00": [
+   "linea poco leggibile"
+  ],
+  "19/11 08:00": [
+   "linea poco leggibile"
+  ],
+  "19/11 11:00": [
+   "linea poco leggibile"
+  ]
+ },
+ "UTC-4": {
+  "19/11 06:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 07:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 08:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino"
+  ],
+  "19/11 11:00": [
+   "linea poco leggibile"
+  ]
+ },
+ "UTC-5": {
+  "19/11 06:00": [
+   "linea poco leggibile",
+   "coperta da etichetta o pallino",
+   "incrocio con UTC-6"
+  ],
+  "19/11 07:00": [
+   "coperta da etichetta o pallino"
+  ]
+ }
+}

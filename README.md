@@ -4,8 +4,8 @@ Cinque dataviz per il pezzo sui primi giorni di Grand Theft Auto VI. Pagine stat
 
 | Cartella | Dataviz | CSV | Fonte | Stato |
 |---|---|---|---|---|
-| `gta-cloudflare/` | Ridgeline: lo sblocco fuso per fuso | `cloudflare-picchi.csv`, `cloudflare-orario.csv` | Cloudflare Radar | manca `cloudflare-orario.csv` (curve orarie) |
-| `gta-timeline/` | Timeline della serie con gli screen | `timeline.csv` | Rockstar Games | mancano gli screen in `gta-timeline/img/` |
+| `gta-cloudflare/` | Ridgeline: lo sblocco fuso per fuso | `cloudflare-picchi.csv`, `cloudflare-orario.csv` | Cloudflare Radar | curve ricavate in bozza: `gta-cloudflare/riferimento/cloudflare-orario-bozza.csv`, da approvare con `controllo.png` e poi copiare in `data/cloudflare-orario.csv` |
+| `gta-timeline/` | Timeline della serie con gli screen | `timeline.csv` | Rockstar Games | pronta; screen ritagliati 16:9 in WebP animato (originali in `originali/gta-timeline/`) |
 | `gta-minuti/` | Minuti giocati al giorno | `minuti.csv` | Circana | pronta |
 | `gta-streaming/` | Ore guardate in streaming | `streaming.csv` | Streams Charts | pronta; dato GTA VI preliminare (2 giorni) |
 | `gta-musica/` | Ascolti Spotify dell'album | `musica.csv` | Kworb | pronta; riaggiornare il CSV prima di pubblicare |
